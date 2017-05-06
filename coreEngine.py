@@ -3,6 +3,7 @@ import os.path
 import csv
 import numpy as np
 from numpy import genfromtxt
+import scipy
 
 
 # define empty class for data structure:
@@ -38,6 +39,9 @@ class Vehicle(object):
 			self.data.isavailable = True
 			self.data.raw = genfromtxt(fileName, delimiter=',')
 			self.data.time = self.data.raw[1:,0]
+			self.data.sampleRate = round((len(self.data.time)-1)/(self.data.time[-1]-self.data.time[0]),2)
+
+			print("sampleRate :", self.data.sampleRate)
 			self.data.speedometer = self.data.raw[1:,0]
 			self.data.parkingSensor_rear = self.data.raw[1:,24]
 		else:
