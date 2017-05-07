@@ -1,14 +1,14 @@
 import matplotlib
 matplotlib.use('TKAgg')
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import os
 import os.path
 import csv
 import numpy as np
 from numpy import genfromtxt
 import scipy
-
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+from helperFunctions import *
 
 
 # define empty class for data structure:
@@ -45,7 +45,8 @@ class Vehicle(object):
 			self.data.raw = genfromtxt(fileName, delimiter=',')
 			self.data.time = self.data.raw[1:,0]
 			self.data.sampleRate = round((len(self.data.time)-1)/(self.data.time[-1]-self.data.time[0]),2)
-
+			print("startTime :", self.data.time[0])
+			print("startTime :", self.data.time[-1])
 			print("sampleRate :", self.data.sampleRate)
 			self.data.speedometer = self.data.raw[1:,0]
 			self.data.parkingSensor_rear = self.data.raw[1:,24]
@@ -54,14 +55,28 @@ class Vehicle(object):
 			# print("No data available for ", VIN )
 
 	def establishImpactTime(self):
-		# check if parking sensor data is available:
-		avail = checkChannelAvail(self.data.parkingSensor_rear)
-		
+		# if(parking distance sensor signal is available),find time at which the indicated distance of the first sensor becomes (very close to) zero:
+		if(checkChannelAvail(self.data.parkingSensor_rear)):
+			# numValues = np.extract(np.logical_not(np.isnan(self.data.parkingSensor_rear)), self.data.parkingSensor_rear)
+			# finiteValues = np.extract(np.isfinite(numValues), numValues)
+			# time_at_numValues = np.extract(np.logical_not(np.isnan(self.data.parkingSensor_rear)), self.data.time)
+			# time_at_finiteValues =  np.extract(np.isfinite(numValues), time_at_numValues)
+			
+			
+			# smoothParking = lowPass(finiteValues, f_crit= 0.25)
+			# smoothParking1 = lowPass(finiteValues, f_crit= 0.4)
+			# plt.plot(self.data.parkingSensor_rear)
+			# plt.plot(smoothParking)
+			# plt.plot(smoothParking1)
+			# plt.show()
 
-		if(avail):
-			print("Parking sensor data is available")
-			plt.plot(self.data.parkingSensor_rear)
-			plt.show()
+			dist_Thresh = 0.005
+			for idx, x in np.ndenumerate(self.data.parkingSensor_rear):
+				if (x < dist_Thresh):
+					self.data.impactTime = self.data.time[idx]
+					break
+			print("ImpactTime: ", self.data.impactTime )
+
 		
 
 		# if(parking distance sensor signal is available):
