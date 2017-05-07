@@ -1,9 +1,14 @@
+import matplotlib
+matplotlib.use('TKAgg')
 import os
 import os.path
 import csv
 import numpy as np
 from numpy import genfromtxt
 import scipy
+
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 
 # define empty class for data structure:
@@ -51,10 +56,12 @@ class Vehicle(object):
 	def establishImpactTime(self):
 		# check if parking sensor data is available:
 		avail = checkChannelAvail(self.data.parkingSensor_rear)
+		
 
 		if(avail):
 			print("Parking sensor data is available")
-
+			plt.plot(self.data.parkingSensor_rear)
+			plt.show()
 		
 
 		# if(parking distance sensor signal is available):
@@ -105,8 +112,6 @@ class Accident(object):
 					print(vehicle.VIN)
 					vehicle.establishImpactTime()
 
-
-
 		else:
 			print("unable to analyse this type of accident")
 
@@ -127,15 +132,7 @@ car2.loadData()
 # create instance of accident with involved vehicles:
 accident = Accident([car1, car2], "ParkingLot")
 
-
-for party in accident.involvedVehicles:
-	# print("VIN: ",party.VIN)
-	# print("Time: ",party.data.time)
-	# print("Speedometer: ",party.data.speedometer)
-	# print("Parking Sensor Rear: ",party.data.parkingSensor_rear)
-
-
-	accident.runAnalysis()
+accident.runAnalysis()
 
 
 
