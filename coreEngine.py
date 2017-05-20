@@ -28,7 +28,7 @@ def checkChannelAvail(channel):
 	else:
 		return False
 
-# define vechicle class:
+# define vehicle class:
 class Vehicle(object):
 
 	def __init__(self, VIN):
