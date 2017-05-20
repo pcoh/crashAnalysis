@@ -42,7 +42,6 @@ class Vehicle(object):
 		self.distTraveled = self.distTraveled+self.speed*scene.stepSize
 
 	def logEventData(self, scene):
-		# self.datalog.speed.append(self.speed)
 		self.datalog.speed = np.append(self.datalog.speed, self.speed)		
 		self.datalog.dist = np.append(self.datalog.dist, self.distTraveled)
 
@@ -54,8 +53,8 @@ class Vehicle(object):
 
 
 class Scene(object):
-	def __init__(self):
-		self.accidentType = 1
+	def __init__(self, accidentType):
+		self.accidentType = "ParkingLot"
 		self.aisleWidth = 10
 		self.endTime = 10
 		self.distance = self.aisleWidth
@@ -71,7 +70,7 @@ class Scene(object):
 def simulate(scene, vehicle1, vehicle2):
 	# timeVector = []
 
-	if scene.accidentType == 1: # both back up		
+	if scene.accidentType == "ParkingLot": # both back up		
 		
 		while scene.currTime < scene.endTime:
 
@@ -100,7 +99,7 @@ def simulate(scene, vehicle1, vehicle2):
 
 def createAccidentData():
 	# initialize scene and vehicles:
-	scene1 = Scene()
+	scene1 = Scene("ParkingLot")
 	car1 = Vehicle()
 	car1.assignBehavior()
 	car2 = Vehicle()
@@ -112,9 +111,7 @@ def createAccidentData():
 
 
 car1Data, car2Data = createAccidentData()
-# print(car1Data.speed)
 
-# car2dist = np.array(car2Data.dist)
 plt.plot(car1Data.time, car1Data.dist)
 plt.plot(car2Data.time, 10-car2Data.dist)
 plt.show()
