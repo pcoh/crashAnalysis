@@ -16,10 +16,10 @@ class Vehicle(object):
 		self.speed = 0
 		self.distTraveled = 0
 		self.datalog = Data()
-		self.datalog.speed = []
-		self.datalog.time = []
-		self.datalog.dist = []
-		self.datalog.parkdist = []		
+		self.datalog.speed = np.empty([1])
+		self.datalog.time = np.empty([1])
+		self.datalog.dist = np.empty([1])
+		self.datalog.parkdist = np.empty([1])
 		
 	def assignBehavior(self):
 		self.startTime = random.uniform(0.5, 1.5)
@@ -30,7 +30,7 @@ class Vehicle(object):
 		self.maxParkSensorDist = random.uniform(2.5,3.5)
 
 	def conductManeuverStep(self,scene):
-		if scene.currTime < self.startTime:
+		if scene.currTime < self.startTime or scene.crashOccurred:
 			ax = 0
 		else:
 			if self.distTraveled < self.brakeInitDist:
@@ -42,14 +42,15 @@ class Vehicle(object):
 		self.distTraveled = self.distTraveled+self.speed*scene.stepSize
 
 	def logEventData(self, scene):
-		self.datalog.speed.append(self.speed)
-		self.datalog.dist.append(self.distTraveled)
+		# self.datalog.speed.append(self.speed)
+		self.datalog.speed = np.append(self.datalog.speed, self.speed)		
+		self.datalog.dist = np.append(self.datalog.dist, self.distTraveled)
 
-		self.datalog.time.append(scene.currTime)
+		self.datalog.time = np.append(self.datalog.time, scene.currTime)
 		if scene.distance > self.maxParkSensorDist:
-			self.datalog.parkdist.append(math.inf)
+			self.datalog.parkdist = np.append(self.datalog.parkdist,math.inf)
 		else:
-			self.datalog.parkdist.append(scene.distance)
+			self.datalog.parkdist = np.append(self.datalog.parkdist, scene.distance)
 
 
 class Scene(object):
@@ -59,11 +60,13 @@ class Scene(object):
 		self.endTime = 10
 		self.distance = self.aisleWidth
 		self.datalog = Data()
-		self.datalog.dist = []
-		self.datalog.time = []
+		self.datalog.dist = np.empty([1])
+		self.datalog.time = np.empty([1])
 		self.stepSize = 0.01
 		self.crashOccurred = False
 		self.currTime = 0
+		self.postCrashRelevantSpan = 3
+		self.postCrashTime = 0
 		
 def simulate(scene, vehicle1, vehicle2):
 	# timeVector = []
@@ -76,16 +79,20 @@ def simulate(scene, vehicle1, vehicle2):
 			vehicle2.conductManeuverStep(scene)
 
 			scene.distance = scene.aisleWidth - vehicle1.distTraveled - vehicle2.distTraveled
-			scene.datalog.dist.append(scene.distance)
-			scene.datalog.time.append(scene.currTime)
+			scene.datalog.dist = np.append(scene.datalog.dist, scene.distance)
+			scene.datalog.time = np.append(scene.datalog.time, scene.currTime)
 
 			vehicle1.logEventData(scene)
 			vehicle2.logEventData(scene)
 			
 			if scene.distance <=0:
 				scene.crashOccurred = True
-				break
-			elif (vehicle1.speed ==0) and (vehicle2.speed==0) and (scene.currTime > vehicle1.startTime) and (scene.currTime > vehicle2.startTime):
+				vehicle1.speed =0
+				vehicle2.speed = 0
+				scene.postCrashTime = scene.postCrashTime + scene.stepSize
+				if scene.postCrashTime > scene.postCrashRelevantSpan:
+					break
+			elif (vehicle1.speed ==0) and (vehicle2.speed==0) and (scene.currTime > vehicle1.startTime) and (scene.currTime > vehicle2.startTime) and (scene.crashOccurred==False):
 				break
 
 			scene.currTime = scene.currTime + scene.stepSize
@@ -105,10 +112,11 @@ def createAccidentData():
 
 
 car1Data, car2Data = createAccidentData()
+# print(car1Data.speed)
 
-car2dist = np.array(car2Data.dist)
+# car2dist = np.array(car2Data.dist)
 plt.plot(car1Data.time, car1Data.dist)
-plt.plot(car2Data.time, 10-car2dist)
+plt.plot(car2Data.time, 10-car2Data.dist)
 plt.show()
 
 
