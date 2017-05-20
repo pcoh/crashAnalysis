@@ -63,11 +63,11 @@ class Vehicle(object):
 			# time_at_finiteValues =  np.extract(np.isfinite(numValues), time_at_numValues)
 			
 			
-			# smoothParking = lowPass(finiteValues, f_crit= 0.25)
-			# smoothParking1 = lowPass(finiteValues, f_crit= 0.4)
+			# parkingSensor_rear_smooth1 = lowPass(finiteValues, f_crit= 0.25)
+			# parkingSensor_rear_smooth2 = lowPass(finiteValues, f_crit= 0.4)
 			# plt.plot(self.data.parkingSensor_rear)
-			# plt.plot(smoothParking)
-			# plt.plot(smoothParking1)
+			# plt.plot(parkingSensor_rear_smooth1)
+			# plt.plot(parkingSensor_rear_smooth2)
 			# plt.show()
 
 			dist_Thresh = 0.005
@@ -77,10 +77,6 @@ class Vehicle(object):
 					break
 			print("ImpactTime: ", self.data.impactTime )
 
-		
-
-		# if(parking distance sensor signal is available):
-		# 	find time at which the indicated distance of the first sensor becomes (very close to) zero.
 		# elif (brakeOn/Off signal is available):
 		# 	if(brake ==0):
 		# 		find time at which deceleration becomes greater that possible from coast-down
