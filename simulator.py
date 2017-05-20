@@ -19,11 +19,7 @@ class Vehicle(object):
 		self.datalog = Data()
 		self.datalog.speed = []
 		self.datalog.dist = []
-		# self.VIN = VIN
-		# self.data = Data()
 		
-		# self.make = 'unknown'
-		# self.model = 'unknown'
 		
 	def assignBehavior(self):
 		self.startTime = random.uniform(0.5, 1.5)
@@ -57,9 +53,6 @@ class Scene(object):
 		
 def simulate(scene, vehicle1, vehicle2):
 	timeVector = []
-	vehicle1.datalog.speed = []
-	vehicle1.datalog.dist = []
-	
 
 	if scene.accidentType == 1: # both back up
 		currTime = 0
