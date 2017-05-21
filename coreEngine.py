@@ -9,6 +9,7 @@ import numpy as np
 from numpy import genfromtxt
 import scipy
 from helperFunctions import *
+from simulator import *
 
 
 # define empty class for data structure:
@@ -23,6 +24,7 @@ def checkChannelAvail(channel):
 	# print ("Numvalues: ", numValues)
 	# print ("finiteValues: ", finiteValues)
 	# print ("nonZeros: ", nonZeros)
+
 	if len(nonZeros)>0:
 		return True
 	else:
@@ -38,44 +40,30 @@ class Vehicle(object):
 		self.make = 'unknown'
 		self.model = 'unknown'
 	
-	def loadData(self):
-		fileName = os.getcwd() + '/'+ self.VIN + '.csv'
-		if (os.path.isfile(fileName)):
-			self.data.isavailable = True
-			self.data.raw = genfromtxt(fileName, delimiter=',')
-			self.data.time = self.data.raw[1:,0]
-			self.data.sampleRate = round((len(self.data.time)-1)/(self.data.time[-1]-self.data.time[0]),2)
-			print("startTime :", self.data.time[0])
-			print("startTime :", self.data.time[-1])
-			print("sampleRate :", self.data.sampleRate)
-			self.data.speedometer = self.data.raw[1:,0]
-			self.data.parkingSensor_rear = self.data.raw[1:,24]
-		else:
-			self.data.isavailable = False
-			# print("No data available for ", VIN )
+	def loadData(self, scene):
+		logData = fetchAccidentData(scene, self.VIN)
+		self.data.isavailable = True
+		self.data.time = logData.time
+		self.data.sampleRate = round(1/scene.stepSize,2)
+		self.data.dist = logData.dist
+		self.data.speedometer = logData.speed
+		self.data.parkingSensor_rear = logData.parkdist
 
 	def establishImpactTime(self):
 		# if(parking distance sensor signal is available),find time at which the indicated distance of the first sensor becomes (very close to) zero:
+		
 		if(checkChannelAvail(self.data.parkingSensor_rear)):
-			# numValues = np.extract(np.logical_not(np.isnan(self.data.parkingSensor_rear)), self.data.parkingSensor_rear)
-			# finiteValues = np.extract(np.isfinite(numValues), numValues)
-			# time_at_numValues = np.extract(np.logical_not(np.isnan(self.data.parkingSensor_rear)), self.data.time)
-			# time_at_finiteValues =  np.extract(np.isfinite(numValues), time_at_numValues)
-			
-			
-			# parkingSensor_rear_smooth1 = lowPass(finiteValues, f_crit= 0.25)
-			# parkingSensor_rear_smooth2 = lowPass(finiteValues, f_crit= 0.4)
-			# plt.plot(self.data.parkingSensor_rear)
-			# plt.plot(parkingSensor_rear_smooth1)
-			# plt.plot(parkingSensor_rear_smooth2)
-			# plt.show()
 
-			dist_Thresh = 0.005
+			dist_Thresh = 0.01
 			for idx, x in np.ndenumerate(self.data.parkingSensor_rear):
 				if (x < dist_Thresh):
 					self.data.impactTime = self.data.time[idx]
+					print("ImpactTime: ", self.data.impactTime )
 					break
-			print("ImpactTime: ", self.data.impactTime )
+				if idx[0] == len(self.data.parkingSensor_rear)-1 and x>=dist_Thresh:
+					print("No impact occurred")
+
+			
 
 		# elif (brakeOn/Off signal is available):
 		# 	if(brake ==0):
@@ -122,7 +110,6 @@ class Accident(object):
 				if (vehicle.data.isavailable ==True):
 					print(vehicle.VIN)
 					vehicle.establishImpactTime()
-
 		else:
 			print("unable to analyse this type of accident")
 
@@ -130,20 +117,31 @@ class Accident(object):
 
 		
 
-
+# create simulated accident data:
+scene = createAccidentData()
 
 # Create instances of Vehicle:		
 car1 = Vehicle('1C4GJ45331B133332')
-car1.loadData()
+car1.loadData(scene)
 
 car2 = Vehicle('1J4FT58L2KL609051')
-car2.loadData()
+car2.loadData(scene)
 
 
 # create instance of accident with involved vehicles:
 accident = Accident([car1, car2], "ParkingLot")
 
 accident.runAnalysis()
+# print(car2.data.dist)
+# print("SignalLength Car1: ",len(car1.data.dist))
+# print("SignalLength Car2: ",len(car2.data.dist))
+print("first time 1: ",car1.data.time[0])
+# print("timelength 1:", len(car1.data.time))
+print("first time 2: ",car2.data.time[0])
+# print("timelength 2:", len(car2.data.time))
+plt.plot(car1.data.time, car1.data.dist)
+plt.plot(car2.data.time, scene.aisleWidth-car2.data.dist)
+plt.show()
 
 
 
