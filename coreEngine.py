@@ -143,6 +143,9 @@ plt.plot(car1.data.time, car1.data.dist)
 plt.plot(car2.data.time, scene.aisleWidth-car2.data.dist)
 plt.show()
 
+plt.plot(car1.data.time, car1.data.accel)
+plt.show()
+
 
 
 

@@ -6,7 +6,6 @@ import numpy as np
 import random
 import math
 
-
 class Data:
 	pass
 
@@ -15,12 +14,15 @@ class Vehicle(object):
 		self.name = self
 		self.VIN = VIN
 		self.speed = 0
+		self.ax = 0
 		self.distTraveled = 0
 		self.datalog = Data()
 		self.datalog.time = np.zeros([1])
 		self.datalog.speed = np.zeros([1])		
 		self.datalog.dist = np.zeros([1])
-		self.datalog.parkdist = np.zeros([1])
+		self.datalog.parkdist_rear = np.zeros([1])
+		self.datalog.accel_x = np.zeros(1)
+		self.datalog.brakeOn = np.zeros(1)
 		
 	def assignBehavior(self):
 		self.startTime = random.uniform(0.5, 1.5)
@@ -32,31 +34,42 @@ class Vehicle(object):
 
 	def conductManeuverStep(self,scene):
 		if scene.currTime < self.startTime or scene.crashOccurred:
-			ax = 0
+			self.ax = 0
 		else:
 			if self.distTraveled < self.brakeInitDist:
-				ax = self.acceleration
+				self.ax = self.acceleration
 			else: 
-				ax = self.deceleration
-		self.speed = min(self.speed + ax*scene.stepSize, self.vmax )
-		self.speed = max(self.speed + ax*scene.stepSize, 0)
+				self.ax = self.deceleration
+		self.speed = min(self.speed + self.ax*scene.stepSize, self.vmax )
+		self.speed = max(self.speed + self.ax*scene.stepSize, 0)
 		self.distTraveled = self.distTraveled+self.speed*scene.stepSize
 
 	def logEventData(self, scene):
 		self.datalog.speed = np.append(self.datalog.speed, self.speed)		
 		self.datalog.dist = np.append(self.datalog.dist, self.distTraveled)
+		if len(self.datalog.dist)>1:
+			self.datalog.accel_x = np.append(self.datalog.accel_x,(self.datalog.speed[-1] - self.datalog.speed[-2])/scene.stepSize)
+		else:
+			self.datalog.accel_x = np.append(self.datalog.accel_x, 0)
 
 		self.datalog.time = np.append(self.datalog.time, scene.currTime)
 		if scene.distance > self.maxParkSensorDist:
-			self.datalog.parkdist = np.append(self.datalog.parkdist,math.inf)
+			self.datalog.parkdist_rear = np.append(self.datalog.parkdist_rear,math.inf)
 		else:
-			self.datalog.parkdist = np.append(self.datalog.parkdist, scene.distance)
+			self.datalog.parkdist_rear = np.append(self.datalog.parkdist_rear, scene.distance)
+
+		if self.ax >= 0:
+			self.datalog.brakeOn = np.append(self.datalog.brakeOn, 0)
+		else:
+			self.datalog.brakeOn = np.append(self.datalog.brakeOn, 1)
 
 	def cleanLog(self):
 		self.datalog.time = np.delete(self.datalog.time, 0)
 		self.datalog.speed = np.delete(self.datalog.speed, 0)
 		self.datalog.dist = np.delete(self.datalog.dist, 0)
-		self.datalog.parkdist = np.delete(self.datalog.parkdist, 0)
+		self.datalog.parkdist_rear = np.delete(self.datalog.parkdist_rear, 0)
+		self.datalog.accel_x =  np.delete(self.datalog.accel_x, 0)
+		self.datalog.brakeOn =  np.delete(self.datalog.brakeOn, 0)
 
 
 class Scene(object):
