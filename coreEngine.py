@@ -36,34 +36,42 @@ class Vehicle(object):
 	def __init__(self, VIN):
 		self.VIN = VIN
 		self.data = Data()
+		self.data.impactTime = -1
 		
 		self.make = 'unknown'
 		self.model = 'unknown'
 	
+	def fetchAccidentData(self, scene):
+		if self.VIN == scene.involvedCars[0].VIN:
+			return scene.involvedCars[0].datalog
+		elif self.VIN == scene.involvedCars[1].VIN:
+			return scene.involvedCars[1].datalog
+		else:
+			print("VIN ", self.VIN, " not found")
+
 	def loadData(self, scene):
-		logData = fetchAccidentData(scene, self.VIN)
+		logData = self.fetchAccidentData(scene)
 		self.data.isavailable = True
 		self.data.time = logData.time
 		self.data.sampleRate = round(1/scene.stepSize,2)
 		self.data.dist = logData.dist
 		self.data.speedometer = logData.speed
-		self.data.parkingSensor_rear = logData.parkdist
+		self.data.parkdist_rear = logData.parkdist_rear
+		self.data.accel_x = logData.accel_x
+		self.data.brakeOn = logData.brakeOn
 
 	def establishImpactTime(self):
 		# if(parking distance sensor signal is available),find time at which the indicated distance of the first sensor becomes (very close to) zero:
-		
-		if(checkChannelAvail(self.data.parkingSensor_rear)):
+		if(checkChannelAvail(self.data.parkdist_rear)):
 
 			dist_Thresh = 0.01
-			for idx, x in np.ndenumerate(self.data.parkingSensor_rear):
+			for idx, x in np.ndenumerate(self.data.parkdist_rear):
 				if (x < dist_Thresh):
 					self.data.impactTime = self.data.time[idx]
 					print("ImpactTime: ", self.data.impactTime )
 					break
-				if idx[0] == len(self.data.parkingSensor_rear)-1 and x>=dist_Thresh:
+				if idx[0] == len(self.data.parkdist_rear)-1 and x>=dist_Thresh:
 					print("No impact occurred")
-
-			
 
 		# elif (brakeOn/Off signal is available):
 		# 	if(brake ==0):
@@ -96,24 +104,34 @@ class Vehicle(object):
 
 		# 	over time, a ML model could learn to identify time of impact from accelerometer data (training data is data that has clear signal (e.g. paking sensor))
 
+		
+
+
 # define accident class:
 class Accident(object):
 
-	def __init__(self, VINList, category):
+	def __init__(self, involvedVehicles, category):
 		self.category = category
-		self.involvedVehicles = VINList
+		self.involvedVehicles = involvedVehicles
+		self.time = 0
 
 	def runAnalysis(self):
 		if(self.category == "ParkingLot"):
 			print("running analysis")
-			for vehicle in accident.involvedVehicles:
+			for vehicle in self.involvedVehicles:
 				if (vehicle.data.isavailable ==True):
 					print(vehicle.VIN)
 					vehicle.establishImpactTime()
+			self.assignGlobalAccidentTime()
+			 # vehicle.checkStandstill()
 		else:
 			print("unable to analyse this type of accident")
 
-	
+	def assignGlobalAccidentTime(self):
+		impactTimes = []
+		for vehicle in self.involvedVehicles:
+			impactTimes.append(vehicle.data.impactTime)
+		self.time = min(impactTimes)
 
 		
 
@@ -132,21 +150,32 @@ car2.loadData(scene)
 accident = Accident([car1, car2], "ParkingLot")
 
 accident.runAnalysis()
-# print(car2.data.dist)
-# print("SignalLength Car1: ",len(car1.data.dist))
-# print("SignalLength Car2: ",len(car2.data.dist))
-print("first time 1: ",car1.data.time[0])
-# print("timelength 1:", len(car1.data.time))
-print("first time 2: ",car2.data.time[0])
-# print("timelength 2:", len(car2.data.time))
+print("impactTime: ", accident.time)
+
+# Plot results:
+fig, ax = plt.subplots(nrows=4,ncols=1)
+
+ax1 = plt.subplot(4,1,1)
+ax1.title.set_text('Position')
 plt.plot(car1.data.time, car1.data.dist)
 plt.plot(car2.data.time, scene.aisleWidth-car2.data.dist)
+
+ax2 = plt.subplot(4,1,2)
+ax2.title.set_text('Speed')
+plt.plot(car1.data.time, car1.data.speedometer)
+plt.plot(car2.data.time, car2.data.speedometer)
+
+ax3 = plt.subplot(4,1,3)
+ax3.title.set_text('Accel X')
+plt.plot(car1.data.time, car1.data.accel_x)
+plt.plot(car2.data.time, car2.data.accel_x)
+
+ax4 = plt.subplot(4,1,4)
+ax4.title.set_text('Brake On')
+plt.plot(car1.data.time, car1.data.brakeOn)
+plt.plot(car2.data.time, car2.data.brakeOn)
+
 plt.show()
-
-plt.plot(car1.data.time, car1.data.accel)
-plt.show()
-
-
 
 
 # if category=="ParkingLot":

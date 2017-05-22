@@ -146,13 +146,13 @@ def createAccidentData():
 	# return scene, car1.datalog, car2.datalog
 	return scene
 
-def fetchAccidentData(scene, VIN):
-	if VIN == scene.involvedCars[0].VIN:
-		return scene.involvedCars[0].datalog
-	elif VIN == scene.involvedCars[1].VIN:
-		return scene.involvedCars[1].datalog
-	else:
-		print("VIN ", VIN, " not found")
+# def fetchAccidentData(scene, VIN):
+# 	if VIN == scene.involvedCars[0].VIN:
+# 		return scene.involvedCars[0].datalog
+# 	elif VIN == scene.involvedCars[1].VIN:
+# 		return scene.involvedCars[1].datalog
+# 	else:
+# 		print("VIN ", VIN, " not found")
 
 
 # scene, car1Data, car2Data = createAccidentData()
