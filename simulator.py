@@ -25,10 +25,13 @@ class Vehicle(object):
 		self.datalog.brakeOn = np.zeros(1)
 		
 	def assignBehavior(self):
-		self.startTime = random.uniform(0.5, 1.5)
-		self.acceleration = random.uniform(0.4, 1.2)
-		self.vmax = random.uniform(0.7, 1.5)
-		self.brakeInitDist = random.uniform(2, 10)
+		self.startTime = random.uniform(0.5, 1.0)
+		# self.startTime = random.uniform(0.5, 1.5)
+		# self.acceleration = random.uniform(0.4, 1.2)
+		self.acceleration = random.gauss(0.6, 0.25)
+		# self.vmax = random.uniform(0.7, 1.5)
+		self.vmax = random.gauss(1.1, 0.2)
+		self.brakeInitDist = random.uniform(4, 9)
 		self.deceleration = random.uniform(-0.7, -1.5)
 		self.maxParkSensorDist = random.uniform(2.5,3.5)
 
@@ -90,7 +93,7 @@ class Scene(object):
 
 		
 	def simulate(self, vehicle1, vehicle2):
-		print("Simulating")
+		# print("Simulating") 
 
 		if self.accidentType == 'ParkingLot': # both back up		
 			
