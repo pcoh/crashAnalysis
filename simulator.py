@@ -112,18 +112,16 @@ class Scene(object):
 					vehicle2.speed = 0
 					self.postCrashTime = self.postCrashTime + self.stepSize
 					if self.postCrashTime > self.postCrashRelevantSpan:
-						vehicle1.cleanLog()
-						vehicle2.cleanLog()
-						self.cleanLog()
 						break
 
 				elif (vehicle1.speed ==0) and (vehicle2.speed==0) and (self.currTime > vehicle1.startTime) and (self.currTime > vehicle2.startTime) and (self.crashOccurred==False):
-					vehicle1.cleanLog()
-					vehicle2.cleanLog()
-					self.cleanLog()
 					break
 
 				self.currTime = self.currTime + self.stepSize
+
+			vehicle1.cleanLog()
+			vehicle2.cleanLog()
+			self.cleanLog()
 
 	def cleanLog(self):
 		self.datalog.time = np.delete(self.datalog.time, 0)
