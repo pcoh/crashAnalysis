@@ -10,6 +10,7 @@ from numpy import genfromtxt
 import scipy
 from helperFunctions import *
 from simulator import *
+import random
 
 
 # define empty class for data structure:
@@ -36,10 +37,13 @@ class Vehicle(object):
 	def __init__(self, VIN):
 		self.VIN = VIN
 		self.data = Data()
-		self.data.impactTime = -1
+		
 		
 		self.make = 'unknown'
 		self.model = 'unknown'
+		self.analytics = Data()
+		self.analytics.impactTime = -1
+		self.analytics.fullStop = -1
 	
 	def fetchAccidentData(self, scene):
 		if self.VIN == scene.involvedCars[0].VIN:
@@ -54,24 +58,46 @@ class Vehicle(object):
 		self.data.isavailable = True
 		self.data.time = logData.time
 		self.data.sampleRate = round(1/scene.stepSize,2)
+		print("Sampe rate: ", self.data.sampleRate)
 		self.data.dist = logData.dist
 		self.data.speedometer = logData.speed
 		self.data.parkdist_rear = logData.parkdist_rear
 		self.data.accel_x = logData.accel_x
 		self.data.brakeOn = logData.brakeOn
 
+	def downSampleData(self, newSampleRate):
+		downsamplingFactor = self.data.sampleRate/newSampleRate
+		if downsamplingFactor % 1 != 0:
+			print("Error. Original sample rate needs to be multiple of new sample rate")
+		else:
+			print("Downsampling data")
+			firstIndex = random.randint(0,downsamplingFactor)
+			
+			self.data.time = downSampleChannel(self.data.time, self.data.sampleRate, newSampleRate, firstIndex)
+			self.data.dist = downSampleChannel(self.data.dist, self.data.sampleRate, newSampleRate, firstIndex)
+			self.data.speedometer = downSampleChannel(self.data.speedometer, self.data.sampleRate, newSampleRate, firstIndex)
+			self.data.parkdist_rear = downSampleChannel(self.data.parkdist_rear, self.data.sampleRate, newSampleRate, firstIndex)
+			self.data.accel_x = downSampleChannel(self.data.accel_x, self.data.sampleRate, newSampleRate, firstIndex)
+			self.data.brakeOn = downSampleChannel(self.data.brakeOn, self.data.sampleRate, newSampleRate, firstIndex)
+			
+
 	def establishImpactTime(self):
 		# if(parking distance sensor signal is available),find time at which the indicated distance of the first sensor becomes (very close to) zero:
 		if(checkChannelAvail(self.data.parkdist_rear)):
-
+			# print("park sensor available")
 			dist_Thresh = 0.01
+			print("ParkDist length: ", len(self.data.parkdist_rear))
+			print("speed length: ", len(self.data.speedometer))
 			for idx, x in np.ndenumerate(self.data.parkdist_rear):
 				if (x < dist_Thresh):
-					self.data.impactTime = self.data.time[idx]
-					print("ImpactTime: ", self.data.impactTime )
+					self.analytics.impactTime = self.data.time[idx]
+					print("ImpactTime: ", self.analytics.impactTime )
 					break
 				if idx[0] == len(self.data.parkdist_rear)-1 and x>=dist_Thresh:
 					print("No impact occurred")
+					self.analytics.impactTime = -1
+		else:
+			print("park sensor NOT available or out of range")
 
 		# elif (brakeOn/Off signal is available):
 		# 	if(brake ==0):
@@ -120,18 +146,60 @@ class Accident(object):
 			print("running analysis")
 			for vehicle in self.involvedVehicles:
 				if (vehicle.data.isavailable ==True):
-					print(vehicle.VIN)
+					# print(vehicle.VIN)
 					vehicle.establishImpactTime()
 			self.assignGlobalAccidentTime()
-			 # vehicle.checkStandstill()
+			self.checkStandstill()
 		else:
 			print("unable to analyse this type of accident")
 
 	def assignGlobalAccidentTime(self):
 		impactTimes = []
 		for vehicle in self.involvedVehicles:
-			impactTimes.append(vehicle.data.impactTime)
+			impactTimes.append(vehicle.analytics.impactTime)
 		self.time = min(impactTimes)
+	def checkStandstill(self):
+		for vehicle in self.involvedVehicles:
+			if (vehicle.analytics.impactTime > 0):
+				impactTimeIndex = np.where(vehicle.data.time==vehicle.analytics.impactTime)[0]
+				# print("impactTimeIndex: ", impactTimeIndex)
+				if vehicle.data.speedometer[impactTimeIndex -1] <= 0.001:
+					vehicle.analytics.fullStop = 1
+				else:
+					vehicle.analytics.fullStop = 0
+
+
+def plotResults(car1, car2):
+	fig, ax = plt.subplots(nrows=5,ncols=1)
+
+	ax1 = plt.subplot(5,1,1)
+	ax1.title.set_text('Position')
+	plt.plot(car1.data.time, car1.data.dist)
+	plt.plot(car2.data.time, scene.aisleWidth-car2.data.dist)
+
+	ax2 = plt.subplot(5,1,2)
+	ax2.title.set_text('Speed')
+	plt.plot(car1.data.time, car1.data.speedometer)
+	plt.plot(car2.data.time, car2.data.speedometer)
+
+	ax3 = plt.subplot(5,1,3)
+	ax3.title.set_text('Accel X')
+	plt.plot(car1.data.time, car1.data.accel_x)
+	plt.plot(car2.data.time, car2.data.accel_x)
+
+	ax4 = plt.subplot(5,1,4)
+	ax4.title.set_text('Brake On')
+	plt.plot(car1.data.time, car1.data.brakeOn)
+	plt.plot(car2.data.time, car2.data.brakeOn)
+
+	ax5 = plt.subplot(5,1,5)
+	ax5.title.set_text('Park Dist')
+	plt.plot(car1.data.time, car1.data.parkdist_rear)
+	plt.plot(car2.data.time, car2.data.parkdist_rear)
+
+
+	plt.show()
+
 
 		
 
@@ -148,34 +216,22 @@ car2.loadData(scene)
 
 # create instance of accident with involved vehicles:
 accident = Accident([car1, car2], "ParkingLot")
-
 accident.runAnalysis()
-print("impactTime: ", accident.time)
-
+print("StandStill Car 1: ", car1.analytics.fullStop)
+print("StandStill Car 2: ", car2.analytics.fullStop)
 # Plot results:
-fig, ax = plt.subplots(nrows=4,ncols=1)
+plotResults(car1, car2)
 
-ax1 = plt.subplot(4,1,1)
-ax1.title.set_text('Position')
-plt.plot(car1.data.time, car1.data.dist)
-plt.plot(car2.data.time, scene.aisleWidth-car2.data.dist)
+# car1.downSampleData(10)
+# car2.downSampleData(10)
 
-ax2 = plt.subplot(4,1,2)
-ax2.title.set_text('Speed')
-plt.plot(car1.data.time, car1.data.speedometer)
-plt.plot(car2.data.time, car2.data.speedometer)
+# accident = Accident([car1, car2], "ParkingLot")
+# accident.runAnalysis()
+# print("StandStill Car 1: ", car1.analytics.fullStop)
+# print("StandStill Car 2: ", car2.analytics.fullStop)
+# plotResults(car1, car2)
 
-ax3 = plt.subplot(4,1,3)
-ax3.title.set_text('Accel X')
-plt.plot(car1.data.time, car1.data.accel_x)
-plt.plot(car2.data.time, car2.data.accel_x)
 
-ax4 = plt.subplot(4,1,4)
-ax4.title.set_text('Brake On')
-plt.plot(car1.data.time, car1.data.brakeOn)
-plt.plot(car2.data.time, car2.data.brakeOn)
-
-plt.show()
 
 
 # if category=="ParkingLot":
