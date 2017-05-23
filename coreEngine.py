@@ -11,6 +11,7 @@ import scipy
 from helperFunctions import *
 from simulator import *
 import random
+import pickle
 
 
 # define empty class for data structure:
@@ -58,7 +59,6 @@ class Vehicle(object):
 		self.data.isavailable = True
 		self.data.time = logData.time
 		self.data.sampleRate = round(1/scene.stepSize,2)
-		print("Sampe rate: ", self.data.sampleRate)
 		self.data.dist = logData.dist
 		self.data.speedometer = logData.speed
 		self.data.parkdist_rear = logData.parkdist_rear
@@ -70,7 +70,7 @@ class Vehicle(object):
 		if downsamplingFactor % 1 != 0:
 			print("Error. Original sample rate needs to be multiple of new sample rate")
 		else:
-			print("Downsampling data")
+			# print("Downsampling data")
 			firstIndex = random.randint(0,downsamplingFactor)
 			
 			self.data.time = downSampleChannel(self.data.time, self.data.sampleRate, newSampleRate, firstIndex)
@@ -86,18 +86,16 @@ class Vehicle(object):
 		if(checkChannelAvail(self.data.parkdist_rear)):
 			# print("park sensor available")
 			dist_Thresh = 0.01
-			print("ParkDist length: ", len(self.data.parkdist_rear))
-			print("speed length: ", len(self.data.speedometer))
 			for idx, x in np.ndenumerate(self.data.parkdist_rear):
 				if (x < dist_Thresh):
 					self.analytics.impactTime = self.data.time[idx]
-					print("ImpactTime: ", self.analytics.impactTime )
+					# print("ImpactTime: ", self.analytics.impactTime )
 					break
 				if idx[0] == len(self.data.parkdist_rear)-1 and x>=dist_Thresh:
-					print("No impact occurred")
+					# print("No impact occurred")
 					self.analytics.impactTime = -1
-		else:
-			print("park sensor NOT available or out of range")
+		# else:
+		# 	print("park sensor NOT available or out of range")
 
 		# elif (brakeOn/Off signal is available):
 		# 	if(brake ==0):
@@ -143,7 +141,7 @@ class Accident(object):
 
 	def runAnalysis(self):
 		if(self.category == "ParkingLot"):
-			print("running analysis")
+			# print("running analysis")
 			for vehicle in self.involvedVehicles:
 				if (vehicle.data.isavailable ==True):
 					# print(vehicle.VIN)
@@ -201,35 +199,95 @@ def plotResults(car1, car2):
 	plt.show()
 
 
-		
+# scene = createAccidentData()
+# # Create instances of Vehicle:		
+# car1 = Vehicle('1C4GJ45331B133332')
+# car1.loadData(scene)
 
-# create simulated accident data:
-scene = createAccidentData()
-
-# Create instances of Vehicle:		
-car1 = Vehicle('1C4GJ45331B133332')
-car1.loadData(scene)
-
-car2 = Vehicle('1J4FT58L2KL609051')
-car2.loadData(scene)
+# car2 = Vehicle('1J4FT58L2KL609051')
+# car2.loadData(scene)
 
 
-# create instance of accident with involved vehicles:
-accident = Accident([car1, car2], "ParkingLot")
-accident.runAnalysis()
-print("StandStill Car 1: ", car1.analytics.fullStop)
-print("StandStill Car 2: ", car2.analytics.fullStop)
-# Plot results:
-plotResults(car1, car2)
-
-# car1.downSampleData(10)
-# car2.downSampleData(10)
-
+# # create instance of accident with involved vehicles:
 # accident = Accident([car1, car2], "ParkingLot")
 # accident.runAnalysis()
-# print("StandStill Car 1: ", car1.analytics.fullStop)
-# print("StandStill Car 2: ", car2.analytics.fullStop)
+# print(car1.analytics.fullStop)
+# print(car2.analytics.fullStop)
+
 # plotResults(car1, car2)
+
+numRuns = 1000
+sampleRateVector = [100,50,10,5,2,1,0.5,0.1]
+
+car1_HitVector = []
+car2_HitVector = []
+for currSampleRate in sampleRateVector:
+	print("calculating samle rate: ", currSampleRate)
+	car1_standstillCount_High = 0
+	car2_standstillCount_High = 0
+	car1_standstillCount_Low =0
+	car2_standstillCount_Low = 0
+	car1_HitRatio = 0.0
+	car2_HitRatio = 0.0
+	for x in range(numRuns):
+		# print(x)
+		# create simulated accident data:
+		scene = createAccidentData()
+
+		# Create instances of Vehicle:		
+		car1 = Vehicle('1C4GJ45331B133332')
+		car1.loadData(scene)
+
+		car2 = Vehicle('1J4FT58L2KL609051')
+		car2.loadData(scene)
+
+
+		# create instance of accident with involved vehicles:
+		accident = Accident([car1, car2], "ParkingLot")
+		accident.runAnalysis()
+		if car1.analytics.fullStop ==1:
+			car1_standstillCount_High += 1
+		if car2.analytics.fullStop ==1:
+			car2_standstillCount_High += 1
+		# print("StandStill Car 1: ", car1.analytics.fullStop)
+		# print("StandStill Car 2: ", car2.analytics.fullStop)
+		# plotResults(car1, car2)
+
+		car1.downSampleData(currSampleRate)
+		car2.downSampleData(currSampleRate)
+
+		accident = Accident([car1, car2], "ParkingLot")
+		accident.runAnalysis()
+		if car1.analytics.fullStop ==1:
+			car1_standstillCount_Low += 1
+		if car2.analytics.fullStop ==1:
+			car2_standstillCount_Low += 1
+		# print("StandStill Car 1: ", car1.analytics.fullStop)
+		# print("StandStill Car 2: ", car2.analytics.fullStop)
+		# plotResults(car1, car2)
+
+	# print("HighRes Car1 # of stops: ",car1_standstillHighRes)
+	car1_HitVector.append((car1_standstillCount_Low*1.0)/car1_standstillCount_High)
+	car2_HitVector.append((car2_standstillCount_Low*1.0)/car2_standstillCount_High)
+	# print("High: ", car1_standstillCount_High)
+	# print("Low: ", car1_standstillCount_Low)
+	# print(car1_HitVector)
+
+
+#Save results to pickle file:
+with open('hitRate.pickle', 'wb') as f:
+    pickle.dump([sampleRateVector,car1_HitVector,car2_HitVector], f)
+
+
+# Retrieve the saved expanded training data:
+with open('hitRate.pickle','rb') as f:
+	sampleRateVector,car1_HitVector,car2_HitVector = pickle.load(f)  
+
+
+plt.plot(sampleRateVector,car1_HitVector, marker='o' )
+plt.plot(sampleRateVector,car2_HitVector, marker='o' )
+plt.show()
+
 
 
 
