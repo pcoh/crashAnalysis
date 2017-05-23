@@ -13,9 +13,7 @@ def lowPass(channel, order=2, f_crit=0.25):
 
 
 def downSampleChannel(channel, oldSampleRate, newSampleRate, firstIndex):
-	print("firstIndex :",firstIndex)
 	stepSize = int(oldSampleRate/newSampleRate)
-	print("stepSize: ", stepSize)
 	newChannel = np.zeros([1])
 	for x in range(0, int(len(channel)/stepSize-1)):
 		# print(channel[firstIndex + x*stepSize])
