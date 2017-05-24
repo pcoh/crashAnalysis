@@ -16,6 +16,11 @@ class Vehicle(object):
 		self.speed = 0
 		self.ax = 0
 		self.distTraveled = 0
+		self.currPerceivedSpace = math.inf
+		self.timeSinceLookBack = 0
+		self.recognizedDanger = 0
+
+
 		self.datalog = Data()
 		self.datalog.time = np.zeros([1])
 		self.datalog.speed = np.zeros([1])		
@@ -23,6 +28,8 @@ class Vehicle(object):
 		self.datalog.parkdist_rear = np.zeros([1])
 		self.datalog.accel_x = np.zeros(1)
 		self.datalog.brakeOn = np.zeros(1)
+		self.driverlog = Data()
+		self.driverlog.perceivedSpace = np.zeros(1)
 		
 	def assignBehavior(self):
 		self.startTime = random.uniform(0.5, 1.0)
@@ -34,15 +41,35 @@ class Vehicle(object):
 		self.brakeInitDist = random.uniform(4, 9)
 		self.deceleration = random.uniform(-0.7, -1.5)
 		self.maxParkSensorDist = random.uniform(2.5,3.5)
+		self.lookBackInterval = max(0.3, random.gauss(1.5, 2.5))
+
+	def checkForDanger(self, scene):
+		if (scene.currTime >= self.startTime -0.2) and (scene.currTime <= self.startTime -0.15): # Driver looks back just before starting to back out
+			self.timeSinceLookBack = math.inf
+
+		if self.timeSinceLookBack >= self.lookBackInterval: # Driver looks back at given intervals
+			self.timeSinceLookBack = 0
+			self.currPerceivedSpace = scene.distance
+			if scene.distance < (scene.aisleWidth - self.distTraveled -0.3): #only recognized that other car moved if other car moved more than 0.3m)
+				self.recognizedDanger = 1
+		self.timeSinceLookBack += scene.stepSize
+
 
 	def conductManeuverStep(self,scene):
+
 		if scene.currTime < self.startTime or scene.crashOccurred:
 			self.ax = 0
 		else:
-			if self.distTraveled < self.brakeInitDist:
-				self.ax = self.acceleration
-			else: 
+			if self.recognizedDanger == 1:
 				self.ax = self.deceleration
+			else:
+				self.ax = self.acceleration
+
+			# if self.distTraveled < self.brakeInitDist:
+			# 	self.ax = self.acceleration
+			# else: 
+			# 	self.ax = self.deceleration
+
 		self.speed = min(self.speed + self.ax*scene.stepSize, self.vmax )
 		self.speed = max(self.speed + self.ax*scene.stepSize, 0)
 		self.distTraveled = self.distTraveled+self.speed*scene.stepSize
@@ -66,6 +93,9 @@ class Vehicle(object):
 		else:
 			self.datalog.brakeOn = np.append(self.datalog.brakeOn, 1)
 
+		self.driverlog.perceivedSpace =np.append(self.driverlog.perceivedSpace, self.currPerceivedSpace )
+
+
 	def cleanLog(self):
 		self.datalog.time = np.delete(self.datalog.time, 0)
 		self.datalog.speed = np.delete(self.datalog.speed, 0)
@@ -73,13 +103,14 @@ class Vehicle(object):
 		self.datalog.parkdist_rear = np.delete(self.datalog.parkdist_rear, 0)
 		self.datalog.accel_x =  np.delete(self.datalog.accel_x, 0)
 		self.datalog.brakeOn =  np.delete(self.datalog.brakeOn, 0)
+		self.driverlog.perceivedSpace =  np.delete(self.driverlog.perceivedSpace, 0)
 
 
 class Scene(object):
 	def __init__(self, accidentType, involvedCars):
 		self.accidentType = 'ParkingLot'
 		self.involvedCars =involvedCars
-		self.aisleWidth = 10
+		self.aisleWidth = 7.8
 		self.endTime = 10
 		self.distance = self.aisleWidth
 		self.datalog = Data()
@@ -98,6 +129,9 @@ class Scene(object):
 		if self.accidentType == 'ParkingLot': # both back up		
 			
 			while self.currTime < self.endTime:
+				vehicle1.checkForDanger(self)
+				vehicle2.checkForDanger(self)
+				# print("v2 time since look: ", vehicle2.timeSinceLookBack)
 
 				vehicle1.conductManeuverStep(self)
 				vehicle2.conductManeuverStep(self)
@@ -139,6 +173,8 @@ def createAccidentData():
 	car1.assignBehavior()
 	car2 = Vehicle('1J4FT58L2KL609051')
 	car2.assignBehavior()
+	print("Car 1 Lookback interval: ", car1.lookBackInterval)
+	print("Car 2 Lookback interval: ", car2.lookBackInterval)
 	scene = Scene('ParkingLot', [car1, car2])
 
 	# Run simulation:
