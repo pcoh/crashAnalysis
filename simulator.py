@@ -9,7 +9,7 @@ import math
 class Data:
 	pass
 
-class Vehicle(object):
+class SimVehicle(object):
 	def __init__(self, VIN):
 		self.name = self
 		self.VIN = VIN
@@ -31,14 +31,14 @@ class Vehicle(object):
 		self.driverlog = Data()
 		self.driverlog.perceivedSpace = np.zeros(1)
 		
-	def assignBehavior(self):
+	def assignBehavior(self, lookBackMean = 1.5, lookBackStd = 2.5):
 		self.startTime = random.uniform(0.5, 1.0)
 		self.acceleration = random.gauss(0.6, 0.25)
 
 		self.vmax = random.gauss(1.1, 0.2)
-		self.deceleration = random.gauss(-1.1, 0.2)
+		self.deceleration = min(0,random.gauss(-1.1, 0.2))
 		self.maxParkSensorDist = 2.5
-		self.lookBackInterval = max(0.3, random.gauss(1.5, 2.5))
+		self.lookBackInterval = max(0.3, random.gauss(lookBackMean, lookBackStd))
 
 	def checkForDanger(self, scene):
 		if (scene.currTime >= self.startTime -0.2) and (scene.currTime <= self.startTime -0.15): # Driver looks back just before starting to back out
@@ -160,9 +160,9 @@ class Scene(object):
 def createAccidentData():
 	# initialize scene and vehicles:
 	
-	car1 = Vehicle('1C4GJ45331B133332')
+	car1 = SimVehicle('1C4GJ45331B133332')
 	car1.assignBehavior()
-	car2 = Vehicle('1J4FT58L2KL609051')
+	car2 = SimVehicle('1J4FT58L2KL609051')
 	car2.assignBehavior()
 	# print("Car 1 Lookback interval: ", car1.lookBackInterval)
 	# print("Car 2 Lookback interval: ", car2.lookBackInterval)
@@ -171,33 +171,7 @@ def createAccidentData():
 	# Run simulation:
 	scene.simulate( car1, car2)
 
-	# return scene, car1.datalog, car2.datalog
 	return scene
-
-# def fetchAccidentData(scene, VIN):
-# 	if VIN == scene.involvedCars[0].VIN:
-# 		return scene.involvedCars[0].datalog
-# 	elif VIN == scene.involvedCars[1].VIN:
-# 		return scene.involvedCars[1].datalog
-# 	else:
-# 		print("VIN ", VIN, " not found")
-
-
-# scene, car1Data, car2Data = createAccidentData()
-# simulatedScene = createAccidentData()
-# carAdata = fetchAccidentData(simulatedScene, '1C4GJ45331B133332')
-# carBdata = fetchAccidentData(simulatedScene, '1J4FT58L2KL609051')
-
-# plt.plot(carAdata.time, carAdata.dist)
-# plt.plot(carBdata.time, simulatedScene.aisleWidth-carBdata.dist)
-# plt.show()
-
-
-# plt.plot(car1Data.time, car1Data.dist)
-# plt.plot(car2Data.time, scene.aisleWidth-car2Data.dist)
-# plt.show()
-
-
 
 
 
