@@ -157,13 +157,13 @@ class Scene(object):
 
 
 
-def createAccidentData():
+def createAccidentData(lookBackMean=1.5, lookBackStd=2.5):
 	# initialize scene and vehicles:
 	
 	car1 = SimVehicle('1C4GJ45331B133332')
-	car1.assignBehavior()
+	car1.assignBehavior(lookBackMean, lookBackStd)
 	car2 = SimVehicle('1J4FT58L2KL609051')
-	car2.assignBehavior()
+	car2.assignBehavior(lookBackMean, lookBackStd)
 	# print("Car 1 Lookback interval: ", car1.lookBackInterval)
 	# print("Car 2 Lookback interval: ", car2.lookBackInterval)
 	scene = Scene('ParkingLot', [car1, car2])
