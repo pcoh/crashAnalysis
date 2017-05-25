@@ -48,22 +48,23 @@ class Vehicle(object):
 	
 	def fetchAccidentData(self, scene):
 		if self.VIN == scene.involvedCars[0].VIN:
-			return scene.involvedCars[0].datalog
+			return scene.involvedCars[0].datalog, scene.involvedCars[0].driverlog
 		elif self.VIN == scene.involvedCars[1].VIN:
-			return scene.involvedCars[1].datalog
+			return scene.involvedCars[1].datalog, scene.involvedCars[1].driverlog
 		else:
 			print("VIN ", self.VIN, " not found")
 
 	def loadData(self, scene):
-		logData = self.fetchAccidentData(scene)
+		datalog, driverlog = self.fetchAccidentData(scene)
 		self.data.isavailable = True
-		self.data.time = logData.time
+		self.data.time = datalog.time
 		self.data.sampleRate = round(1/scene.stepSize,2)
-		self.data.dist = logData.dist
-		self.data.speedometer = logData.speed
-		self.data.parkdist_rear = logData.parkdist_rear
-		self.data.accel_x = logData.accel_x
-		self.data.brakeOn = logData.brakeOn
+		self.data.dist = datalog.dist
+		self.data.speedometer = datalog.speed
+		self.data.parkdist_rear = datalog.parkdist_rear
+		self.data.accel_x = datalog.accel_x
+		self.data.brakeOn = datalog.brakeOn
+		self.data.perceivedSpace = driverlog.perceivedSpace
 
 	def downSampleData(self, newSampleRate):
 		downsamplingFactor = self.data.sampleRate/newSampleRate
@@ -168,55 +169,71 @@ class Accident(object):
 
 
 def plotResults(car1, car2):
-	fig, ax = plt.subplots(nrows=5,ncols=1)
+	nrows=6
+	fig, ax = plt.subplots(nrows,ncols=1)
 
-	ax1 = plt.subplot(5,1,1)
+	ax1 = plt.subplot(nrows,1,1)
 	ax1.title.set_text('Position')
 	plt.plot(car1.data.time, car1.data.dist)
 	plt.plot(car2.data.time, scene.aisleWidth-car2.data.dist)
 
-	ax2 = plt.subplot(5,1,2)
+	ax2 = plt.subplot(nrows,1,2)
 	ax2.title.set_text('Speed')
 	plt.plot(car1.data.time, car1.data.speedometer)
 	plt.plot(car2.data.time, car2.data.speedometer)
 
-	ax3 = plt.subplot(5,1,3)
+	ax3 = plt.subplot(nrows,1,3)
 	ax3.title.set_text('Accel X')
 	plt.plot(car1.data.time, car1.data.accel_x)
 	plt.plot(car2.data.time, car2.data.accel_x)
 
-	ax4 = plt.subplot(5,1,4)
+	ax4 = plt.subplot(nrows,1,4)
 	ax4.title.set_text('Brake On')
 	plt.plot(car1.data.time, car1.data.brakeOn)
 	plt.plot(car2.data.time, car2.data.brakeOn)
 
-	ax5 = plt.subplot(5,1,5)
+	ax5 = plt.subplot(nrows,1,5)
 	ax5.title.set_text('Park Dist')
 	plt.plot(car1.data.time, car1.data.parkdist_rear)
 	plt.plot(car2.data.time, car2.data.parkdist_rear)
 
+	ax6 = plt.subplot(nrows,1,6)
+	ax6.title.set_text('Perceived Space')
+	plt.plot(car1.data.time, car1.data.perceivedSpace)
+	plt.plot(car2.data.time, car2.data.perceivedSpace)
 
 	plt.show()
 
 
-# scene = createAccidentData()
-# # Create instances of Vehicle:		
-# car1 = Vehicle('1C4GJ45331B133332')
-# car1.loadData(scene)
-
-# car2 = Vehicle('1J4FT58L2KL609051')
-# car2.loadData(scene)
 
 
-# # create instance of accident with involved vehicles:
-# accident = Accident([car1, car2], "ParkingLot")
-# accident.runAnalysis()
-# print(car1.analytics.fullStop)
-# print(car2.analytics.fullStop)
+# crashcounter = 0;
+# for x in range(100):
+# 	if x % 10 ==0:
+# 		print(x)
+# 	scene = createAccidentData()
+# 	# Create instances of Vehicle:		
+# 	car1 = Vehicle('1C4GJ45331B133332')
+# 	car1.loadData(scene)
+
+# 	car2 = Vehicle('1J4FT58L2KL609051')
+# 	car2.loadData(scene)
+
+# 	# create instance of accident with involved vehicles:
+# 	accident = Accident([car1, car2], "ParkingLot")
+# 	# Analyze accident
+# 	accident.runAnalysis()
+
+# 	# print(car1.analytics.fullStop)
+# 	# print(car2.analytics.fullStop)
+# 	if (car1.analytics.fullStop ==1) or (car2.analytics.fullStop ==1):
+# 		crashcounter += 1
 
 # plotResults(car1, car2)
+# print("num of crashes: ", crashcounter)
 
-numRuns = 1000
+################
+numRuns = 2000
 sampleRateVector = [100,50,10,5,2,1,0.5,0.1]
 
 car1_HitVector = []
@@ -283,10 +300,13 @@ with open('hitRate.pickle', 'wb') as f:
 with open('hitRate.pickle','rb') as f:
 	sampleRateVector,car1_HitVector,car2_HitVector = pickle.load(f)  
 
+print(car1_HitVector)
+print(car2_HitVector)
 
 plt.plot(sampleRateVector,car1_HitVector, marker='o' )
 plt.plot(sampleRateVector,car2_HitVector, marker='o' )
 plt.show()
+
 
 
 
