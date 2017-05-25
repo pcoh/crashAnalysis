@@ -33,14 +33,11 @@ class Vehicle(object):
 		
 	def assignBehavior(self):
 		self.startTime = random.uniform(0.5, 1.0)
-		# self.startTime = random.uniform(0.5, 1.5)
-		# self.acceleration = random.uniform(0.4, 1.2)
 		self.acceleration = random.gauss(0.6, 0.25)
-		# self.vmax = random.uniform(0.7, 1.5)
+
 		self.vmax = random.gauss(1.1, 0.2)
-		self.brakeInitDist = random.uniform(4, 9)
-		self.deceleration = random.uniform(-0.7, -1.5)
-		self.maxParkSensorDist = random.uniform(2.5,3.5)
+		self.deceleration = random.gauss(-1.1, 0.2)
+		self.maxParkSensorDist = 2.5
 		self.lookBackInterval = max(0.3, random.gauss(1.5, 2.5))
 
 	def checkForDanger(self, scene):
@@ -50,13 +47,12 @@ class Vehicle(object):
 		if self.timeSinceLookBack >= self.lookBackInterval: # Driver looks back at given intervals
 			self.timeSinceLookBack = 0
 			self.currPerceivedSpace = scene.distance
-			if scene.distance < (scene.aisleWidth - self.distTraveled -0.3): #only recognized that other car moved if other car moved more than 0.3m)
+			if scene.distance < (scene.aisleWidth - self.distTraveled -0.3) or scene.distance < 1.5: #only recognized that other car moved if other car moved more than 0.3m but also stops if distance from other car is less than 1.5m)
 				self.recognizedDanger = 1
 		self.timeSinceLookBack += scene.stepSize
 
 
 	def conductManeuverStep(self,scene):
-
 		if scene.currTime < self.startTime or scene.crashOccurred:
 			self.ax = 0
 		else:
@@ -64,11 +60,6 @@ class Vehicle(object):
 				self.ax = self.deceleration
 			else:
 				self.ax = self.acceleration
-
-			# if self.distTraveled < self.brakeInitDist:
-			# 	self.ax = self.acceleration
-			# else: 
-			# 	self.ax = self.deceleration
 
 		self.speed = min(self.speed + self.ax*scene.stepSize, self.vmax )
 		self.speed = max(self.speed + self.ax*scene.stepSize, 0)
@@ -173,8 +164,8 @@ def createAccidentData():
 	car1.assignBehavior()
 	car2 = Vehicle('1J4FT58L2KL609051')
 	car2.assignBehavior()
-	print("Car 1 Lookback interval: ", car1.lookBackInterval)
-	print("Car 2 Lookback interval: ", car2.lookBackInterval)
+	# print("Car 1 Lookback interval: ", car1.lookBackInterval)
+	# print("Car 2 Lookback interval: ", car2.lookBackInterval)
 	scene = Scene('ParkingLot', [car1, car2])
 
 	# Run simulation:
